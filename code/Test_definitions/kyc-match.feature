@@ -1,4 +1,4 @@
-Feature: CAMARA Know Your Customer Match API, vwip - Operation KYC_Match
+Feature: CAMARA Know Your Customer Match API, v0.3.0 - Operation KYC_Match
     # Input to be provided by the implementation to the tester
     #
     # Implementation indications:
@@ -7,11 +7,11 @@ Feature: CAMARA Know Your Customer Match API, vwip - Operation KYC_Match
     # Testing assets:
     # * A mobile line identified by its phone number "phoneNumber"
     #
-    # References to OAS spec schemas refer to schemas specifies in kyc-match.yaml, version wip
+    # References to OAS spec schemas refer to schemas specifies in kyc-match.yaml, version 0.3.0
 
     Background: Common KYC_Match setup
         Given an environment at "apiRoot"
-        And the resource "/kyc-match/vwip/match"
+        And the resource "/kyc-match/v0.3/match"
         And the header "Content-Type" is set to "application/json"
         And the header "Authorization" is set to a valid access token
         And the header "x-correlator" is set to a UUID value
@@ -45,6 +45,8 @@ Feature: CAMARA Know Your Customer Match API, vwip - Operation KYC_Match
         Examples:
             | request_property_path     | response_property_path        |
             | $.idDocument              | $.idDocumentMatch             |
+            | $.idDocumentType          | $.idDocumentTypeMatch         |
+            | $.idDocumentExpiryDate    | $.idDocumentExpiryDateMatch   |
             | $.name                    | $.nameMatch                   |
             | $.givenName               | $.givenNameMatch              |
             | $.familyName              | $.familyNameMatch             |
@@ -63,7 +65,9 @@ Feature: CAMARA Know Your Customer Match API, vwip - Operation KYC_Match
             | $.birthdate               | $.birthdateMatch              |
             | $.email                   | $.emailMatch                  |
             | $.gender                  | $.genderMatch                 |
-
+            | $.placeOfBirth            | $.placeOfBirthMatch           |
+            | $.countryOfBirth          | $.countryOfBirthMatch         |
+            | $.nationality             | $.nationalityMatch            |
 
     @KYC_Match_3_success_specific_property_score
     # Note: This test scenario is optional, as implementation of 'score' feature is optional to network operators/ API providers.
@@ -95,7 +99,7 @@ Feature: CAMARA Know Your Customer Match API, vwip - Operation KYC_Match
             | $.locality                | $.localityMatch               | $.localityMatchScore          |
             | $.birthdate               | $.birthdateMatch              | $.birthdateMatchScore         |
             | $.email                   | $.emailMatch                  | $.emailMatchScore             |
-
+            | $.placeOfBirth            | $.placeOfBirthMatch           | $.placeOfBirthMatchScore      |
 
     @KYC_Match_4_success_multiple_optional_parameter_combinations
     Scenario: Validate success response when providing different optional parameter combinations
@@ -119,6 +123,7 @@ Feature: CAMARA Know Your Customer Match API, vwip - Operation KYC_Match
         And the request body property "$.birthdate" is set to a birthdate value that complies with the ISO 8601 calendar date format "YYYY-MM-DD"
         And the request body property "$.email" is set to a email value that complies with the RFC format "{local-part}@{domain}"
         And the request body property "$.gender" is set to a valid gender value that belongs to the enumeration ("MALE", "FEMALE", "OTHER")
+        And the request body property "$.nationality" is set to the country for the nationality and complies with the ISO 3166-1 alpha-2 format
         And the given request body is populated with any random combination of afore mention optional parameters
         When the request "KYC_Match" is sent
         Then the response status code is 200
