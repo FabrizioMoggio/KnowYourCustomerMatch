@@ -1,4 +1,4 @@
-Feature: CAMARA Know Your Customer Match API, wip - Operation KYC_Match
+Feature: CAMARA Know Your Customer Match API, vwip - Operation KYC_Match
     # Input to be provided by the implementation to the tester
     #
     # Implementation indications:
