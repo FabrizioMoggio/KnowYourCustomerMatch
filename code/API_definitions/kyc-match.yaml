@@ -50,6 +50,11 @@ info:
     - If the subject cannot be identified from the access token and the optional phoneNumber field is not included in the request, then the server will return an error with the `422 MISSING_IDENTIFIER` error code. This is an error typically, but not uniquely, returned in 2-legged scenarios when the access token doesn't identify a single subscription.
     - If there is a mismatch between the provided phone number in the request body and the phone number associated with the access token, the server will return an error with the `403 INVALID_TOKEN_CONTEXT` error code.
 
+    ### Additional CAMARA error responses
+    The list of error codes in this API specification is not exhaustive. Therefore the API specification may not document some non-mandatory error statuses as indicated in `CAMARA API Design Guide`.
+    Please refer to the `CAMARA_common.yaml` of the Commonalities Release associated to this API version for a complete list of error responses. The applicable Commonalities Release can be identified in the `API Readiness Checklist` document associated to this API version.
+    As a specific rule, error `501 - NOT_IMPLEMENTED` can be only a possible error response if it is explicitly documented in the API.
+
     # Authorization and authentication
 
     The "Camara Security and Interoperability Profile" provides details of how an API consumer requests an access token. Please refer to Identity and Consent Management (https://github.com/camaraproject/IdentityAndConsentManagement/) for the released version of the profile.
@@ -62,12 +67,12 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
-  version: wip
+  version: v0.4.0-rc.1
 
-  x-camara-commonalities: 0.5
+  x-camara-commonalities: 0.6
 
 servers:
-  - url: '{apiRoot}/kyc-match/vwip'
+  - url: '{apiRoot}/kyc-match/v0.4rc1'
     variables:
       apiRoot:
         default: http://localhost:9091
@@ -91,7 +96,7 @@ paths:
         - If the provided `idDocument` does not match the one stored in the Operator systems, then a `HTTP 403 - KNOW_YOUR_CUSTOMER.ID_DOCUMENT_MISMATCH` error will be returned.
 
         The API will return the result of the matching process for each requested attribute. This means that the response will **only** contain the attributes for which validation has been requested. Possible values are:
-          - **true**: the attribute provided matches with the one in the Operator systems.
+          - **true**: the attribute provided matches with the one in the Operator systems, which is equal to a `match_score` of 100.
           - **false**: the attribute provided does not match with the one in the Operator systems.
           - **not_available**: the attribute is not available to validate.
       operationId: KYC_Match
@@ -116,6 +121,8 @@ paths:
                 value:
                   phoneNumber: '+34629255833'
                   idDocument: 66666666q
+                  idDocumentType: passport
+                  idDocumentExpiryDate: '2027-07-12'
                   name: Federica Sanchez Arjona
                   givenName: Federica
                   familyName: Sanchez Arjona
@@ -134,9 +141,14 @@ paths:
                   birthdate: '1978-08-22'
                   email: abc@example.com
                   gender: OTHER
+                  placeOfBirth: Madrid
+                  countryOfBirth: ES
+                  nationality: ES
               Three-Legged Without Phone Number Example:
                 value:
                   idDocument: 66666666q
+                  idDocumentType: passport
+                  idDocumentExpiryDate: '2027-07-12'
                   name: Federica Sanchez Arjona
                   givenName: Federica
                   familyName: Sanchez Arjona
@@ -155,6 +167,9 @@ paths:
                   birthdate: '1978-08-22'
                   email: abc@example.com
                   gender: OTHER
+                  placeOfBirth: Madrid
+                  countryOfBirth: ES
+                  nationality: ES
 
       responses:
         '200':
@@ -172,6 +187,8 @@ paths:
                 KYC_Match200Example:
                   value:
                     idDocumentMatch: 'true'
+                    idDocumentTypeMatch: 'true'
+                    idDocumentExpiryDateMatch: 'true'
                     nameMatch: 'true'
                     givenNameMatch: 'not_available'
                     familyNameMatch: 'not_available'
@@ -192,6 +209,10 @@ paths:
                     emailMatch: 'false'
                     emailMatchScore: 87
                     genderMatch: 'false'
+                    placeOfBirthMatch: 'false'
+                    placeOfBirthScore: 86
+                    countryOfBirthMatch: 'true'
+                    nationalityMatch: 'true'
 
         '400':
           $ref: '#/components/responses/Generic400'
@@ -252,6 +273,16 @@ components:
         idDocument:
           type: string
           description: Id number associated to the official identity document in the country. It may contain alphanumeric characters.
+        
+        idDocumentType:
+          type: string
+          enum: [passport, national_id_card, residence_permit, diplomatic_id, driver_licence, social_security_id, other]
+          description: Type of the official identity document provided.
+        
+        idDocumentExpiryDate:
+          type: string
+          format: date
+          description: Expiration date of the identity document (ISO 8601).
 
         name:
           type: string
@@ -330,19 +361,37 @@ components:
             - MALE
             - FEMALE
             - OTHER
-
+            
+        placeOfBirth:
+          type: string
+          description: City where the customer was born.
+          
+        countryOfBirth:
+          type: string
+          description: Country where the customer was born. Format ISO 3166-1 alpha-2.
+        
+        nationality:
+          type: string
+          description: ISO 3166-1 alpha-2 code of the customer’s nationality. In the case a customers has more than one nationality, it is supposed to be the nationality related to the ID document provided in the match request.
     MatchResult:
       type: string
+      description: |
+        true -  the attribute provided matches with the one in the Operator systems, which is equal to a `match_score` of 100.
+        false - the attribute provided does not match with the one in the Operator systems.
+        not_available - the attribute is not available to validate.
       enum:
-          - 'true'
-          - 'false'
-          - 'not_available'
+        - 'true'
+        - 'false'
+        - 'not_available'
 
     MatchScoreResult:
       type: integer
-      description: Indicates the similarity score assigned to the input value when it does not exactly match the value stored in the operator's system. This property shall only be returned when the value of the corresponding match field is `false`.
+      description: |
+        Indicates the similarity score assigned to the input value when it does not exactly match the value stored in the operator's system. 
+        This property shall only be returned when the value of the corresponding match field is `false`.
+        A perfect match with a score of 100 is indicated by `match` being 'true' and no `matchScore` is returned in this case.
       minimum: 0
-      maximum: 100
+      maximum: 99
 
     KYC_MatchResponse:
       type: object
@@ -351,6 +400,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/MatchResult'
             - description: Indicates whether Id number associated to the ID document of the customer matches with the one on the Operator's system.
+        idDocumentTypeMatch:
+          allOf:
+            - $ref: '#/components/schemas/MatchResult'
+            - description: Indicates whether document type associated to the ID document of the customer matches with the one on the Operator's system.
+        idDocumentExpiryDateMatch:
+          allOf:
+            - $ref: '#/components/schemas/MatchResult'
+            - description: Indicates whether document expiration date associated to the ID document of the customer matches with the one on the Operator's system.
         nameMatch:
           allOf:
             - $ref: '#/components/schemas/MatchResult'
@@ -449,6 +506,20 @@ components:
           allOf:
             - $ref: '#/components/schemas/MatchResult'
             - description: Indicates whether the gender of the customer matches with the one on the Operator's system.
+        placeOfBirthMatch:
+          allOf:
+            - $ref: '#/components/schemas/MatchResult'
+            - description: Indicates whether the city at birth of the customer matches with the one on the Operator's system
+        placeOfBirthMatchScore:
+          $ref: '#/components/schemas/MatchScoreResult'
+        countryOfBirthMatch:
+          allOf:
+            - $ref: '#/components/schemas/MatchResult'
+            - description: Indicates whether the country at birth of the customer matches with the one on the Operator's system
+        nationalityMatch:
+          allOf:
+            - $ref: '#/components/schemas/MatchResult'
+            - description: Indicates whether the nationality of the customer matches with the one on the Operator's system
 
     ErrorInfo:
       type: object
@@ -519,20 +590,14 @@ components:
                   code:
                     enum:
                       - UNAUTHENTICATED
-                      - AUTHENTICATION_REQUIRED
+
           examples:
             GENERIC_401_UNAUTHENTICATED:
-              description: Request cannot be authenticated
+              description: Request cannot be authenticated and a new authentication is required
               value:
                 status: 401
                 code: UNAUTHENTICATED
-                message: Request not authenticated due to missing, invalid, or expired credentials.
-            GENERIC_401_AUTHENTICATION_REQUIRED:
-              description: New authentication is needed, authentication is no longer valid
-              value:
-                status: 401
-                code: AUTHENTICATION_REQUIRED
-                message: New authentication is required.
+                message: Request not authenticated due to missing, invalid, or expired credentials. A new authentication is required.
 
     Generic403:
       description: Forbidden
@@ -606,6 +671,7 @@ components:
               value:
                 status: 404
                 code: NOT_FOUND
+                message: The specified resource is not found.
             GENERIC_404_IDENTIFIER_NOT_FOUND:
               description: The phone number is not associated with a CSP customer account
               value:
